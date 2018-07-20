@@ -1,15 +1,55 @@
 <?php
 
+class IdxEng extends Magmi_Engine
+{
+     public function engineInit($params)
+    {
+
+    }
+
+     public function engineRun($params)
+    {
+
+    }
+}
+
 class Magmi_ReindexingPlugin extends Magmi_GeneralImportPlugin
 {
     protected $_reindex;
-    protected $_indexlist = "catalog_product_attribute,catalog_product_price,catalog_product_flat,catalog_category_flat,catalog_category_product,cataloginventory_stock,catalog_url,catalogsearch_fulltext,tag_summary";
+    protected $_indexlist = null;
     protected $_mdh;
+    protected $_eng;
 
     public function getPluginInfo()
     {
-        return array("name"=>"Magmi Magento Reindexer","author"=>"Dweeves","version"=>"1.0.3a",
+        return array("name"=>"Magmi Magento Reindexer","author"=>"Dweeves","version"=>"1.0.4",
             "url"=>$this->pluginDocUrl("Magmi_Magento_Reindexer"));
+    }
+
+    public function initIndexList()
+    {
+        if($this->_eng==null)
+        {
+            $this->_eng=new IdxEng();
+            $this->_eng->initialize();
+            $this->_eng->connectToMagento();
+        }
+
+        $sql="SELECT indexer_code FROM ".$this->_eng->tablename('index_process');
+        $result=$this->_eng->selectAll($sql);
+        $idxlist=array();
+        if(count($result))
+        {
+            foreach($result as $row)
+            {
+                $idxlist[]=$row["indexer_code"];
+            }
+            return implode(',', $idxlist);
+        }
+        else
+        {
+            return array();
+        }
     }
 
     public function afterImport()
@@ -28,8 +68,7 @@ class Magmi_ReindexingPlugin extends Magmi_GeneralImportPlugin
 
         $cpe = $this->tablename('catalog_product_entity');
         $this->log("Optmizing EAV Tables...", "info");
-        foreach ($tables as $t)
-        {
+        foreach ($tables as $t) {
             $this->log("Optmizing $t....", "info");
             $sql = "DELETE ta.* FROM " . $this->tablename($t) . " as ta
 			LEFT JOIN $cpe as cpe on cpe.entity_id=ta.entity_id
@@ -42,9 +81,8 @@ class Magmi_ReindexingPlugin extends Magmi_GeneralImportPlugin
     public function fixFlat()
     {
         $this->log("Cleaning flat tables before reindex...", "info");
-        $stmt = $this->exec_stmt("SHOW TABLES LIKE '" . $this->tablename('catalog_product_flat') . "%'", NULL, false);
-        while ($row = $stmt->fetch(PDO::FETCH_NUM))
-        {
+        $stmt = $this->exec_stmt("SHOW TABLES LIKE '" . $this->tablename('catalog_product_flat') . "%'", null, false);
+        while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
             $tname = $row[0];
             // removing records in flat tables that are no more linked to entries in catalog_product_entity table
             // for some reasons, this seem to happen
@@ -62,26 +100,27 @@ class Magmi_ReindexingPlugin extends Magmi_GeneralImportPlugin
 
     public function getIndexList()
     {
+        if($this->_indexlist==null)
+        {
+            $this->_indexlist=$this->initIndexList();
+        }
         return $this->_indexlist;
     }
 
     public function updateIndexes()
     {
         // make sure we are not in session
-        if (session_id() !== "")
-        {
+        if (session_id() !== "") {
             session_write_close();
         }
         $cl = $this->getParam("REINDEX:phpcli") . " shell/indexer.php";
         $idxlstr = $this->getParam("REINDEX:indexes", "");
         $idxlist = explode(",", $idxlstr);
-        if (count($idxlist) == 0)
-        {
+        if (count($idxlist) == 0) {
             $this->log("No indexes selected , skipping reindexing...", "warning");
             return true;
         }
-        foreach ($idxlist as $idx)
-        {
+        foreach ($idxlist as $idx) {
             $tstart = microtime(true);
             $this->log("Reindexing $idx....", "info");
 
@@ -90,13 +129,13 @@ class Magmi_ReindexingPlugin extends Magmi_GeneralImportPlugin
             $this->log($out, "info");
             $tend = microtime(true);
             $this->log("done in " . round($tend - $tstart, 2) . " secs", "info");
-            if (Magmi_StateManager::getState() == "canceled")
-            {
+            if (Magmi_StateManager::getState() == "canceled") {
                 exit();
             }
             flush();
         }
     }
+
 
     public function isRunnable()
     {

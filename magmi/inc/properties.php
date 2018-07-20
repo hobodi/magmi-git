@@ -14,9 +14,9 @@ class InvalidPropertiesException extends Exception
 
 class Properties
 {
-    protected $_props;
     public $inifile;
-    protected $_specialchars = array('"'=>":DQUOTE:","'"=>":SQUOTE:",'\\t'=>"TAB");
+    protected $_props;
+    protected $_specialchars = array('"' => ":DQUOTE:", "'" => ":SQUOTE:", '\\t' => ":TAB:");
 
     public function __construct()
     {
@@ -27,6 +27,21 @@ class Properties
     public function setPropsFromFlatArray($flatarr)
     {
         $this->_props = $this->getIniStruct($flatarr);
+    }
+
+    public function getIniStruct($arr)
+    {
+        $conf = array();
+        foreach ($arr as $k => $v)
+        {
+            list($section, $value) = explode(":", $k, 2);
+            if (!isset($conf[$section]))
+            {
+                $conf[$section] = array();
+            }
+            $conf[$section][$value] = $v;
+        }
+        return $conf;
     }
 
     public function setProps($proparr)
@@ -49,37 +64,19 @@ class Properties
             {
                 foreach ($data as $k => $v)
                 {
+                    $newv=$v;
                     foreach ($this->_specialchars as $spch => $alias)
                     {
-                        $newv = str_replace($alias, $spch, $v);
-                        if ($newv != $v)
-                        {
-                            break;
-                        }
+                        $newv = str_replace($alias, $spch, $newv);
+
                     }
                     $this->_props[$sec][$k] = $newv;
                 }
             }
-        }
-        catch (Exception $e)
+        } catch (Exception $e)
         {
             throw new InvalidPropertiesException();
         }
-    }
-
-    public function getIniStruct($arr)
-    {
-        $conf = array();
-        foreach ($arr as $k => $v)
-        {
-            list($section,$value) = explode(":", $k, 2);
-            if (!isset($conf[$section]))
-            {
-                $conf[$section] = array();
-            }
-            $conf[$section][$value] = $v;
-        }
-        return $conf;
     }
 
     public function save($fname = null)
@@ -91,16 +88,7 @@ class Properties
         return $this->write_ini_file($this->_props, $fname, true);
     }
 
-    public function esc($str)
-    {
-        foreach ($this->_specialchars as $spch => $alias)
-        {
-            $str = str_replace($spch, $alias, $str);
-        }
-        return $str;
-    }
-
-    public function write_ini_file($assoc_arr, $path, $has_sections = FALSE)
+    public function write_ini_file($assoc_arr, $path, $has_sections = false)
     {
         $content = "";
         if (count($assoc_arr) > 0)
@@ -120,11 +108,14 @@ class Properties
                                 $content .= $key2 . "[] = \"" . $this->esc($elem2[$i]) . "\"\n";
                             }
                         }
+                        elseif ($elem2 == "")
+                        {
+                            $content .= $key2 . " = \n";
+                        }
                         else
-                            if ($elem2 == "")
-                                $content .= $key2 . " = \n";
-                            else
-                                $content .= $key2 . " = \"" . $this->esc($elem2) . "\"\n";
+                        {
+                            $content .= $key2 . " = \"" . $this->esc($elem2) . "\"\n";
+                        }
                     }
                 }
             }
@@ -140,11 +131,14 @@ class Properties
                             $content .= $key . "[] = \"" . $this->esc($elem[$i]) . "\"\n";
                         }
                     }
+                    elseif ($elem == "")
+                    {
+                        $content .= $key . " = \n";
+                    }
                     else
-                        if ($elem == "")
-                            $content .= $key . " = \n";
-                        else
-                            $content .= $key . " = \"" . $this->esc($elem) . "\"\n";
+                    {
+                        $content .= $key . " = \"" . $this->esc($elem) . "\"\n";
+                    }
                 }
             }
         }
@@ -160,6 +154,15 @@ class Properties
         @chmod($path, 0664);
         fclose($handle);
         return true;
+    }
+
+    public function esc($str)
+    {
+        foreach ($this->_specialchars as $spch => $alias)
+        {
+            $str = str_replace($spch, $alias, $str);
+        }
+        return $str;
     }
 
     public function set($secname, $pname, $val)
@@ -203,16 +206,16 @@ class Properties
         }
     }
 
-    public function hasSection($secname)
-    {
-        return isset($this->_props[$secname]);
-    }
-
     public function removeSection($secname)
     {
         if ($this->hasSection($secname))
         {
             unset($this->_props[$secname]);
         }
+    }
+
+    public function hasSection($secname)
+    {
+        return isset($this->_props[$secname]);
     }
 }

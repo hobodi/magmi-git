@@ -28,8 +28,7 @@ function csl2arr($cslarr, $sep = ",")
 {
     $arr = explode($sep, $cslarr);
     $carr = count($arr);
-    for ($i = 0; $i < $carr; $i++)
-    {
+    for ($i = 0; $i < $carr; $i++) {
         $arr[$i] = trim($arr[$i]);
     }
     return $arr;
@@ -39,8 +38,7 @@ function csl2arr($cslarr, $sep = ",")
 function trimarray(&$arr)
 {
     $carr = count($arr);
-    for ($i = 0; $i < $carr; $i++)
-    {
+    for ($i = 0; $i < $carr; $i++) {
         $arr[$i] = trim($arr[$i]);
     }
 }
@@ -49,16 +47,12 @@ function trimarray(&$arr)
 function getRelative(&$val)
 {
     $dir = "+";
-    if ($val[0] == "-")
-    {
+    if ($val[0] == "-") {
         $val = substr($val, 1);
         $dir = "-";
+    } elseif ($val[0] == "+") {
+        $val = substr($val, 1);
     }
-    else
-        if ($val[0] == "+")
-        {
-            $val = substr($val, 1);
-        }
     return $dir;
 }
 
@@ -73,31 +67,22 @@ function is_remote_path($path)
 // if $resolve is set to true,return associated realpath
 function abspath($path, $basepath = "", $resolve = true)
 {
-    if ($basepath == "")
-    {
+    if ($basepath == "") {
         $basepath = dirname(dirname(__FILE__));
     }
     $cpath = str_replace('//', '/', $basepath . "/" . $path);
-    if ($resolve && !is_remote_path($cpath))
-    {
+    if ($resolve && !is_remote_path($cpath)) {
         $abs = realpath($cpath);
-    }
-    else
-    {
+    } else {
         $inparts = explode("/", $cpath);
         $outparts = array();
         $cinparts = count($inparts);
-        for ($i = 0; $i < $cinparts; $i++)
-        {
-            if ($inparts[$i] == '..')
-            {
+        for ($i = 0; $i < $cinparts; $i++) {
+            if ($inparts[$i] == '..') {
                 array_pop($outparts);
+            } elseif ($inparts[$i] != '.') {
+                $outparts[] = $inparts[$i];
             }
-            else
-                if ($inparts[$i] != '.')
-                {
-                    $outparts[] = $inparts[$i];
-                }
         }
         $abs = implode("/", $outparts);
     }
@@ -108,31 +93,29 @@ function truepath($path)
 {
     $opath = $path;
     // whether $path is unix or not
-    $unipath = strlen($path) == 0 || $path{0} != '/';
+    $unipath = strlen($path) == 0 || $path{0}
+    != '/';
     // attempts to detect if path is relative in which case, add cwd
-    if (strpos($path, ':') === false && $unipath)
+    if (strpos($path, ':') === false && $unipath) {
         $path = getcwd() . DIRECTORY_SEPARATOR . $path;
+    }
         // resolve path parts (single dot, double dot and double delimiters)
-    $path = str_replace(array('/','\\'), DIRECTORY_SEPARATOR, $path);
+    $path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $path);
     $parts = array_filter(explode(DIRECTORY_SEPARATOR, $path), 'strlen');
     $absolutes = array();
-    foreach ($parts as $part)
-    {
-        if ('.' == $part)
+    foreach ($parts as $part) {
+        if ('.' == $part) {
             continue;
-        if ('..' == $part)
-        {
-            array_pop($absolutes);
         }
-        else
-        {
+        if ('..' == $part) {
+            array_pop($absolutes);
+        } else {
             $absolutes[] = $part;
         }
     }
     $path = implode(DIRECTORY_SEPARATOR, $absolutes);
     // resolve any symlinks
-    if (file_exists($path) && linkinfo($path) > 0)
-    {
+    if (file_exists($path) && linkinfo($path) > 0) {
         $path = readlink($path);
     }
     // put initial separator that could have been lost
@@ -152,14 +135,16 @@ function isabspath($path)
 class Slugger
 {
     // Mapping array for intl accented chars
-    protected static $_translit = array('Š'=>'S','š'=>'s','Ð'=>'Dj','Ž'=>'Z','ž'=>'z','À'=>'A','Á'=>'A','Â'=>'A',
-        'Ã'=>'A','Ä'=>'A','Å'=>'A','Æ'=>'A','Ç'=>'C','È'=>'E','É'=>'E','Ê'=>'E','Ë'=>'E','Ì'=>'I','Í'=>'I','Î'=>'I',
-        'Ï'=>'I','Ñ'=>'N','Ò'=>'O','Ó'=>'O','Ô'=>'O','Õ'=>'O','Ö'=>'O','Ø'=>'O','Ù'=>'U','Ú'=>'U','Û'=>'U','Ü'=>'U',
-        'Ý'=>'Y','Þ'=>'B','ß'=>'Ss','à'=>'a','á'=>'a','â'=>'a','ã'=>'a','ä'=>'a','å'=>'a','æ'=>'a','ç'=>'c','è'=>'e',
-        'é'=>'e','ê'=>'e','ë'=>'e','ì'=>'i','í'=>'i','î'=>'i','ï'=>'i','ð'=>'o','ñ'=>'n','ò'=>'o','ó'=>'o','ô'=>'o',
-        'õ'=>'o','ö'=>'o','ø'=>'o','ù'=>'u','ú'=>'u','û'=>'u','ý'=>'y','ý'=>'y','þ'=>'b','ÿ'=>'y','ƒ'=>'f','Č'=>'C',
-        'č'=>'c','Ľ'=>'L','ľ'=>'l','Ĺ'=>'L','Ť'=>'T','ť'=>'t','Ň'=>'N','ň'=>'n','Ŕ'=>'R','ŕ'=>'r','Ř'=>'R','ř'=>'r',
-        'Ő'=>'O','ő'=>'o','Ű'=>'U','ű'=>'u','ü'=>'u');
+    protected static $_translit = array('Š'=>'S','š'=>'s','ś'=>'s','Ś'=>'S','Ð'=>'Dj','Ž'=>'Z','ž'=>'z','ż'=>'z',
+        'Ż'=>'Z','ź'=>'z','Ź'=>'Z','À'=>'A','Á'=>'A','Â'=>'A','Ã'=>'A','Ä'=>'A','Å'=>'A','Æ'=>'A','ą'=>'a','Ą'=>'A',
+        'Ç'=>'C','ć'=> 'c','Ć'=>'C','È'=>'E','É'=>'E','Ê'=>'E','Ë'=>'E','ę'=>'e','Ę'=>'E','Ì'=>'I','Í'=>'I','Î'=>'I',
+        'Ï'=>'I','Ñ'=>'N','ń'=>'n','Ń'=>'N','Ò'=>'O','Ó'=>'O','Ô'=>'O','Õ'=>'O','Ö'=>'O','Ø'=>'O','Ù'=>'U','Ú'=>'U',
+        'Û'=>'U','Ü'=>'U','Ý'=>'Y','Þ'=>'B','ß'=>'Ss','à'=>'a','á'=>'a','â'=>'a','ã'=>'a','ä'=>'a','å'=>'a','æ'=>'a',
+        'ç'=>'c','è'=>'e','é'=>'e','ê'=>'e','ë'=>'e','ì'=>'i','í'=>'i','î'=>'i','ï'=>'i','ð'=>'o','ñ'=>'n','ò'=>'o',
+        'ó'=>'o','ô'=>'o','õ'=>'o','ö'=>'o','ø'=>'o','ù'=>'u','ú'=>'u','û'=>'u','ý'=>'y','þ'=>'b','ÿ'=>'y','ƒ'=>'f',
+        'Č'=>'C','č'=>'c','Ľ'=>'L','ľ'=>'l','Ĺ'=>'L','ł'=>'l','Ł'=>'L','Ť'=>'T','ť'=>'t','Ň'=>'N','ň'=>'n','Ŕ'=>'R',
+        'ŕ'=>'r','Ř'=>'R','ř'=>'r','Ő'=>'O','ő'=>'o','Ű'=>'U','ű'=>'u','ı'=>'i', 'İ'=>'I', 'ü'=>'u', 'ş'=>'s', 'Ş'=>'S',
+         'ğ'=>'g', 'Ğ'=>'G');
 
     // Stripping accents
     public static function stripAccents($text)
@@ -177,4 +162,3 @@ class Slugger
         return $str;
     }
 }
-
